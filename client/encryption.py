@@ -5,8 +5,6 @@ from Crypto.Cipher import AES
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import dh
 import base64
-import base64
-import hashlib
 
 def generate_dh_keys():
     parameters = dh.generate_parameters(generator=2, key_size=2048)

@@ -1,11 +1,11 @@
+import base64
 from flask import request, jsonify, redirect, url_for, session, render_template
 from app import app, db, oauth
 from models import User, Message
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
 
 @app.route('/')
 def index():
@@ -53,6 +53,31 @@ def verify_email():
         db.session.commit()
         return jsonify({'message': 'Email verified successfully'}), 200
     return jsonify({'message': 'Invalid verification code'}), 400
+
+@app.route('/dh_key_exchange', methods=['POST'])
+def dh_key_exchange():
+    # Generate DH parameters
+    parameters = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
+    private_key = parameters.generate_private_key()
+    public_key = private_key.public_key()
+
+    # Serialize public key and return
+    serialized_public_key = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
+    # Serialize private key using PKCS8 format
+    serialized_private_key = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+
+    # Store serialized private key for session
+    session['dh_private_key'] = serialized_private_key.decode()
+
+    return jsonify({'public_key': serialized_public_key.decode()}), 200
 
 @app.route('/send_message', methods=['POST'])
 def send_message():

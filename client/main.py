@@ -1,12 +1,15 @@
+import os
 import tkinter as tk
 from tkinter import messagebox
 import requests
+import base64
+from cryptography.hazmat.primitives import serialization
 from encryption import generate_dh_keys, compute_shared_secret, derive_session_key, encrypt_message, decrypt_message, serialize_public_key
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-SERVER_URL = 'http://127.0.0.1:5000/'
+SERVER_URL = os.environ.get('SERVER_URL', 'http://127.0.0.1:5000')
 
 class SecureChatApp:
     def __init__(self, root):
@@ -128,20 +131,24 @@ class SecureChatApp:
         print("Diffie-Hellman key exchange initiated")
         if response.status_code == 200:
             # Receive server's public key
-            server_public_key = response.json()['public_key']
-            # Deserialize server's public key
-            server_public_key = serialization.load_pem_public_key(base64.b64decode(server_public_key))
-            # Compute shared secret
-            shared_secret = compute_shared_secret(self.private_key, server_public_key)
-            # Derive session key
-            self.session_key = derive_session_key(shared_secret)
-            logging.debug("Session key derived successfully")
+            server_public_key = response.json()['public_key'].strip()  # Trim whitespace
+            try:
+                # Deserialize server's public key
+                server_public_key = serialization.load_pem_public_key(base64.b64decode(server_public_key))
+                # Compute shared secret
+                shared_secret = compute_shared_secret(self.private_key, server_public_key)
+                # Derive session key
+                self.session_key = derive_session_key(shared_secret)
+                logging.debug("Session key derived successfully")
+            except Exception as e:
+                logging.error(f"Error in Diffie-Hellman key exchange: {e}")
         else:
             logging.error("Error in Diffie-Hellman key exchange")
-
 
 
 if __name__ == '__main__':
     root = tk.Tk()
     app = SecureChatApp(root)
-    app.perform_dh_key_exchange()  # Perform Diffie-Hellman key exchange during
+    # Perform Diffie-Hellman key exchange before starting the Tkinter main loop
+    app.perform_dh_key_exchange()
+    root.mainloop()
