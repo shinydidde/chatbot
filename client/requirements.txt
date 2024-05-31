@@ -1,3 +1,7 @@
-requests==2.26.0
-pycryptodome==3.10.4
+# requests==2.26.0
+# pycryptodome==3.10.4
+# tk==0.1.0
+
+pycryptodome==3.4.3
+requests==2.11.1
 tk==0.1.0
